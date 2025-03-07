@@ -114,8 +114,7 @@ def handle_message(event):
                         print(f"✅ 專案已建立，UUID: {project_id}")  # Debug log
                         reply_messages = [
                             TextMessage(text=f"✅ 專案『{project_name}』已建立，共{stage_count}個階段！\n成員可根據範例輸入學號姓名加入！"),
-                            TextMessage(text="111219060／王曉明／加入專案"),
-                            TextMessage(text="https://project-piaopiao-v1.vercel.app/")
+                            TextMessage(text="111219060／王曉明／加入專案")
                         ]
                     else:
                         reply_text = "⚠️ 無法建立專案，請稍後再試。"
@@ -170,7 +169,7 @@ def handle_message(event):
                                 "real_name": real_name  # ✅ 存入真實姓名
                             }
                             response = supabase_client.table("project_members").insert(member_data).execute()
-                            reply_text = f"✅ 你已成功加入專案！\n學號：{student_id}\n姓名：{real_name}"
+                            reply_text = f"✅ 你已成功加入專案！\n學號：{student_id}\n姓名：{real_name}\n https://project-piaopiao-v1.vercel.app/"
 
             except Exception as e:
                 reply_text = f"❌ 加入專案失敗: {str(e)}"
