@@ -114,7 +114,7 @@ def handle_message(event):
                         print(f"✅ 專案已建立，UUID: {project_id}")  # Debug log
                         reply_messages = [
                             TextMessage(text=f"✅ 專案『{project_name}』已建立，共{stage_count}個階段！\n成員可根據範例輸入學號姓名加入！"),
-                            TextMessage(text="111219060／王曉明／加入專案")
+                            TextMessage(text="111219060／王曉明／加入專案"),
                             TextMessage(text="https://project-piaopiao-v1.vercel.app/")
                         ]
                     else:
