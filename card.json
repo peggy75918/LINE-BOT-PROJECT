@@ -1,0 +1,68 @@
+{
+    "type": "bubble",
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "spacing": "md",
+      "contents": [
+        {
+          "type": "text",
+          "text": "這裡是計畫飄飄👻",
+          "size": "md",
+          "weight": "regular",
+          "margin": "none",
+          "style": "normal",
+          "position": "relative",
+          "wrap": true
+        },
+        {
+          "type": "text",
+          "text": "接下來將會幫助同學進行小組期中專題的協作，並進行一次課堂作業的系統測試。",
+          "size": "md",
+          "weight": "regular",
+          "margin": "md",
+          "style": "normal",
+          "position": "relative",
+          "wrap": true
+        },
+        {
+          "type": "text",
+          "text": "正式實驗則會在課堂進行一週作業與兩週期中實施，請同學事先填寫實驗知情同意書，並詳閱實驗操作說明，有任何問題可以在 3/14（五）前通過此聊天室提出，感謝同學的配合！",
+          "size": "md",
+          "weight": "regular",
+          "margin": "md",
+          "style": "normal",
+          "position": "relative",
+          "wrap": true
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "button",
+          "color": "#798777",
+          "margin": "none",
+          "action": {
+            "type": "uri",
+            "label": "填寫「實驗知情同意書」",
+            "uri": "https://forms.gle/YcSbEonoJPQJ6ry88"
+          },
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "color": "#89A8B2",
+          "margin": "xl",
+          "action": {
+            "type": "uri",
+            "label": "實驗操作說明",
+            "uri": "https://docs.google.com/document/d/1WXTpCjn5F2lAeChYT9-LWeGG2n7xFJv-Ao5JUjcsrQc/edit?usp=sharing"
+          },
+          "style": "primary"
+        }
+      ]
+    }
+  }
