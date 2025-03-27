@@ -1,0 +1,200 @@
+{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "📊 任務週報",
+        "weight": "bold",
+        "size": "xl",
+        "margin": "md",
+        "color": "#153448"
+      },
+      {
+        "type": "text",
+        "text": "04/01 - 04/07",
+        "size": "md",
+        "color": "#aaaaaa",
+        "wrap": true,
+        "weight": "bold"
+      },
+      {
+        "type": "separator",
+        "margin": "lg"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "margin": "lg",
+        "spacing": "sm",
+        "contents": [
+          {
+            "type": "text",
+            "text": "王曉明",
+            "color": "#153448"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "本週完成清單",
+                "size": "sm",
+                "color": "#153448",
+                "flex": 0
+              },
+              {
+                "type": "text",
+                "text": "2項",
+                "size": "sm",
+                "color": "#153448",
+                "align": "end"
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "本週完成任務",
+                "size": "sm",
+                "color": "#153448"
+              },
+              {
+                "type": "text",
+                "text": "1項",
+                "size": "sm",
+                "color": "#153448",
+                "align": "end"
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "專案任務進度",
+                "size": "sm",
+                "color": "#153448"
+              },
+              {
+                "type": "text",
+                "text": "3 / 4",
+                "size": "sm",
+                "color": "#153448",
+                "align": "end"
+              }
+            ]
+          },
+          {
+            "type": "separator",
+            "margin": "lg"
+          },
+          {
+            "type": "text",
+            "text": "李小美",
+            "color": "#153448"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "本週完成清單",
+                "size": "sm",
+                "color": "#153448",
+                "flex": 0
+              },
+              {
+                "type": "text",
+                "text": "2項",
+                "size": "sm",
+                "color": "#153448",
+                "align": "end"
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "本週完成任務",
+                "size": "sm",
+                "color": "#153448"
+              },
+              {
+                "type": "text",
+                "text": "5項",
+                "size": "sm",
+                "color": "#153448",
+                "align": "end"
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "專案任務進度",
+                "size": "sm",
+                "color": "#153448"
+              },
+              {
+                "type": "text",
+                "text": "5 / 6",
+                "size": "sm",
+                "color": "#153448",
+                "align": "end"
+              }
+            ]
+          },
+          {
+            "type": "separator",
+            "margin": "lg"
+          }
+        ]
+      },
+      {
+        "type": "separator",
+        "margin": "lg"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "margin": "md",
+        "contents": [
+          {
+            "type": "text",
+            "text": "本次週報截至",
+            "size": "xs",
+            "color": "#aaaaaa",
+            "flex": 0
+          },
+          {
+            "type": "text",
+            "text": "2025/04/06",
+            "color": "#aaaaaa",
+            "size": "xs"
+          }
+        ]
+      }
+    ]
+  },
+  "styles": {
+    "footer": {
+      "separator": true
+    }
+  }
+}
