@@ -1,0 +1,65 @@
+{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "📊 任務週報",
+        "weight": "bold",
+        "size": "xl",
+        "margin": "md",
+        "color": "#153448"
+      },
+      {
+        "type": "text",
+        "text": "04/01 - 04/07",
+        "size": "md",
+        "color": "#aaaaaa",
+        "wrap": true,
+        "weight": "bold"
+      },
+      {
+        "type": "separator",
+        "margin": "lg"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "margin": "lg",
+        "spacing": "sm",
+        "contents": []
+      },
+      {
+        "type": "separator",
+        "margin": "lg"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "margin": "md",
+        "contents": [
+          {
+            "type": "text",
+            "text": "本次週報截至",
+            "size": "xs",
+            "color": "#aaaaaa",
+            "flex": 0
+          },
+          {
+            "type": "text",
+            "text": "2025/04/06",
+            "color": "#aaaaaa",
+            "size": "xs"
+          }
+        ]
+      }
+    ]
+  },
+  "styles": {
+    "footer": {
+      "separator": true
+    }
+  }
+}
