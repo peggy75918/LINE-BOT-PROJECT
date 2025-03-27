@@ -3,7 +3,6 @@ import json
 from datetime import datetime, timedelta
 from supabase import create_client
 from dotenv import load_dotenv
-from linebot.v3.messaging import FlexMessage, FlexContainer
 
 # Load environment variables
 load_dotenv()
@@ -110,8 +109,7 @@ def generate_weekly_report(group_id):
                 ]})
 
             debug_logs.append("\u2705 Flex \u6a21\u677f\u5b8c\u6210")
-
-            return template  # ✅ 回傳 JSON dict
+            return template
 
         except Exception as e:
             debug_logs.append(f"\u274c Flex \u6a21\u677f\u932f\u8aa4: {str(e)}")
@@ -120,4 +118,5 @@ def generate_weekly_report(group_id):
     except Exception as e:
         debug_logs.append(f"\u274c \u767c\u9001\u9031\u5831\u5931\u6557: {str(e)}")
         return "\n".join(debug_logs)
+
 
