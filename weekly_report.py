@@ -1,54 +1,65 @@
-# weekly_report.py
 import os
 from datetime import datetime, timedelta
+from supabase import create_client
 from dotenv import load_dotenv
-import supabase
 
 load_dotenv()
 
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-supabase_client = supabase.create_client(supabase_url, supabase_key)
+supabase_client = create_client(supabase_url, supabase_key)
 
 def format_date(d): return d.strftime("%m/%d")
 
 def generate_weekly_report(group_id):
-    today = datetime.utcnow() + timedelta(hours=8)
-    start_of_week = today - timedelta(days=today.weekday())  # 週一
-    end_of_week = start_of_week + timedelta(days=6)
+    log = []  # ✅ 用來收集除錯訊息
+    try:
+        log.append("📌 1️⃣ 查詢最新專案中...")
 
-    # 找最新專案
-    project_res = supabase_client.table("projects").select("id").eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
-    if not project_res.data:
-        return "⚠️ 本群組尚未建立任何專案"
+        project_res = supabase_client.table("projects").select("id").eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
+        if not project_res.data:
+            return "⚠️ 本群組尚未建立任何專案"
 
-    project_id = project_res.data[0]["id"]
+        project_id = project_res.data[0]["id"]
+        log.append(f"✅ 專案 ID: {project_id}")
 
-    # 查所有成員
-    member_res = supabase_client.table("project_members").select("user_id, real_name").eq("project_id", project_id).execute()
-    members = {m["user_id"]: {"name": m["real_name"], "total": 0, "completed": 0, "weekly_done": 0} for m in member_res.data}
+        log.append("📌 2️⃣ 查詢專案成員...")
+        member_res = supabase_client.table("project_members").select("user_id, real_name").eq("project_id", project_id).execute()
+        if not member_res.data:
+            return "⚠️ 尚未加入任何成員"
 
-    # 查所有任務
-    task_res = supabase_client.table("tasks").select("id, assignee_id").eq("project_id", project_id).execute()
-    task_map = {t["id"]: t["assignee_id"] for t in task_res.data if t["assignee_id"] in members}
+        members = {m["user_id"]: {"name": m["real_name"], "total": 0, "completed": 0, "weekly_done": 0} for m in member_res.data}
+        log.append(f"✅ 成員數量: {len(members)}")
 
-    # 查所有 checklist
-    checklist_res = supabase_client.table("task_checklists").select("task_id, is_done, completed_at").in_("task_id", list(task_map.keys())).execute()
-    for c in checklist_res.data:
-        uid = task_map[c["task_id"]]
-        members[uid]["total"] += 1
-        if c["is_done"]:
-            members[uid]["completed"] += 1
-            if c["completed_at"]:
-                complete_time = datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + timedelta(hours=8)
-                if start_of_week <= complete_time <= end_of_week:
-                    members[uid]["weekly_done"] += 1
+        log.append("📌 3️⃣ 查詢任務資料...")
+        task_res = supabase_client.table("tasks").select("id, assignee_id").eq("project_id", project_id).execute()
+        task_map = {t["id"]: t["assignee_id"] for t in task_res.data if t["assignee_id"] in members}
+        log.append(f"✅ 有效任務數: {len(task_map)}")
 
-    # 組合訊息
-    header = f"🧾 本週任務週報（{format_date(start_of_week)} - {format_date(end_of_week)}）\n"
-    lines = []
-    for uid, data in members.items():
-        lines.append(f"{data['name']}：{data['completed']} / {data['total']} ✅（本週完成 {data['weekly_done']}）")
+        log.append("📌 4️⃣ 查詢 checklist...")
+        checklist_res = supabase_client.table("task_checklists").select("task_id, is_done, completed_at").in_("task_id", list(task_map.keys())).execute()
+        
+        today = datetime.utcnow() + timedelta(hours=8)
+        start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
 
-    return header + "\n".join(lines)
+        for c in checklist_res.data:
+            uid = task_map.get(c["task_id"])
+            if uid:
+                members[uid]["total"] += 1
+                if c["is_done"]:
+                    members[uid]["completed"] += 1
+                    if c["completed_at"]:
+                        complete_time = datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + timedelta(hours=8)
+                        if start_of_week <= complete_time <= end_of_week:
+                            members[uid]["weekly_done"] += 1
 
+        # 建立訊息
+        log.append("📌 5️⃣ 組合回報訊息")
+        header = f"📊 任務週報（{format_date(start_of_week)} - {format_date(end_of_week)}）"
+        lines = [f"{data['name']}：{data['completed']} / {data['total']} ✅（本週完成 {data['weekly_done']}）" for data in members.values()]
+        return header + "\n" + "\n".join(lines)
+
+    except Exception as e:
+        log.append(f"❌ 發生錯誤: {str(e)}")
+        return "\n".join(log)
