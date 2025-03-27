@@ -2,100 +2,116 @@ import os
 from datetime import datetime, timedelta
 from supabase import create_client
 from dotenv import load_dotenv
+from linebot.v3.messaging import FlexMessage, FlexContainer
 
 load_dotenv()
 
-supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-supabase_client = create_client(supabase_url, supabase_key)
+supabase_client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
 
 def format_date(d): return d.strftime("%m/%d")
 
 def generate_weekly_report(group_id):
-    log = []
     try:
-        log.append("📌 1️⃣ 查詢最新專案中...")
-
-        project_res = supabase_client.table("projects").select("id").eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
-        if not project_res.data:
-            return "⚠️ 本群組尚未建立任何專案"
-
-        project_id = project_res.data[0]["id"]
-        log.append(f"✅ 專案 ID: {project_id}")
-
-        log.append("📌 2️⃣ 查詢專案成員...")
-        member_res = supabase_client.table("project_members").select("user_id, real_name").eq("project_id", project_id).execute()
-        if not member_res.data:
-            return "⚠️ 尚未加入任何成員"
-
-        members = {
-            m["user_id"]: {
-                "name": m["real_name"],
-                "weekly_checklist_done": 0,
-                "weekly_task_done": 0,
-                "task_done": 0,
-                "task_total": 0
-            } for m in member_res.data
-        }
-        log.append(f"✅ 成員數量: {len(members)}")
-
-        log.append("📌 3️⃣ 查詢任務資料...")
-        task_res = supabase_client.table("tasks").select("id, assignee_id").eq("project_id", project_id).execute()
-        task_map = {t["id"]: t["assignee_id"] for t in task_res.data if t["assignee_id"] in members}
-        log.append(f"✅ 任務數: {len(task_map)}")
-
-        log.append("📌 4️⃣ 查詢 checklist...")
-        checklist_res = supabase_client.table("task_checklists").select("task_id, is_done, completed_at").in_("task_id", list(task_map.keys())).execute()
-
-        tz_tw = timedelta(hours=8)
-        today = (datetime.utcnow() + tz_tw).replace(tzinfo=None)
+        # 📅 取得本週區間（台灣時間）
+        today = datetime.utcnow() + timedelta(hours=8)
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
 
-        # 📌 檢查任務 checklist 是否全部完成
-        checklist_group = {}  # {task_id: [checklist, checklist, ...]}
+        # 🔍 查詢群組最新的 project_id
+        project_res = supabase_client.table("projects").select("id").eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
+        if not project_res.data:
+            return TextMessage(text="⚠️ 尚未建立專案")
+        project_id = project_res.data[0]["id"]
+
+        # 👥 專案成員
+        member_res = supabase_client.table("project_members").select("user_id, real_name").eq("project_id", project_id).execute()
+        members = {
+            m["user_id"]: {"name": m["real_name"], "weekly_checklist": 0, "weekly_task": 0, "total_task": 0, "completed_task": 0}
+            for m in member_res.data
+        }
+
+        # 📋 任務資料
+        task_res = supabase_client.table("tasks").select("id, assignee_id").eq("project_id", project_id).execute()
+        task_map = {}
+        for task in task_res.data:
+            uid = task["assignee_id"]
+            if uid in members:
+                task_map[task["id"]] = uid
+                members[uid]["total_task"] += 1
+
+        # ✅ checklist
+        checklist_res = supabase_client.table("task_checklists").select("task_id, is_done, completed_at").in_("task_id", list(task_map)).execute()
+        task_done_tracker = set()
         for c in checklist_res.data:
-            checklist_group.setdefault(c["task_id"], []).append(c)
+            uid = task_map[c["task_id"]]
+            if c["is_done"]:
+                members[uid]["weekly_checklist"] += 1
+                if c["completed_at"]:
+                    completed = datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + timedelta(hours=8)
+                    if start_of_week <= completed <= end_of_week:
+                        # 每個 checklist count 一次；任務完成只算一次
+                        if c["task_id"] not in task_done_tracker:
+                            members[uid]["weekly_task"] += 1
+                            task_done_tracker.add(c["task_id"])
+                members[uid]["completed_task"] += 1
 
-            # 統計本週完成的 checklist
-            if c["is_done"] and c["completed_at"]:
-                complete_time = (
-                    datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + tz_tw
-                ).replace(tzinfo=None)
-                if start_of_week <= complete_time <= end_of_week:
-                    uid = task_map.get(c["task_id"])
-                    if uid:
-                        members[uid]["weekly_checklist_done"] += 1
+        # 🧾 組合 FlexMessage JSON
+        contents = []
+        for m in members.values():
+            contents += [
+                {"type": "text", "text": m["name"], "color": "#153448"},
+                {
+                    "type": "box",
+                    "layout": "horizontal",
+                    "contents": [
+                        {"type": "text", "text": "本週完成清單", "size": "sm", "color": "#153448"},
+                        {"type": "text", "text": f"{m['weekly_checklist']}項", "size": "sm", "color": "#153448", "align": "end"}
+                    ]
+                },
+                {
+                    "type": "box",
+                    "layout": "horizontal",
+                    "contents": [
+                        {"type": "text", "text": "本週完成任務", "size": "sm", "color": "#153448"},
+                        {"type": "text", "text": f"{m['weekly_task']}項", "size": "sm", "color": "#153448", "align": "end"}
+                    ]
+                },
+                {
+                    "type": "box",
+                    "layout": "horizontal",
+                    "contents": [
+                        {"type": "text", "text": "專案任務進度", "size": "sm", "color": "#153448"},
+                        {"type": "text", "text": f"{m['completed_task']} / {m['total_task']}", "size": "sm", "color": "#153448", "align": "end"}
+                    ]
+                },
+                {"type": "separator", "margin": "lg"}
+            ]
 
-        # 📌 遍歷每個任務判斷完成情況
-        for task_id, checklists in checklist_group.items():
-            uid = task_map[task_id]
-            members[uid]["task_total"] += 1
-
-            if all(c["is_done"] for c in checklists):
-                members[uid]["task_done"] += 1
-
-                # 檢查這筆任務的最後完成 checklist 是否在本週
-                completed_times = [
-                    datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + tz_tw
-                    for c in checklists if c["completed_at"]
+        flex_json = {
+            "type": "bubble",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {"type": "text", "text": "📊 任務週報", "weight": "bold", "size": "xl", "color": "#153448"},
+                    {"type": "text", "text": f"{format_date(start_of_week)} - {format_date(end_of_week)}", "size": "md", "color": "#aaaaaa", "weight": "bold"},
+                    {"type": "separator", "margin": "lg"},
+                    {"type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm", "contents": contents},
+                    {"type": "separator", "margin": "lg"},
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "margin": "md",
+                        "contents": [
+                            {"type": "text", "text": "本次週報截至", "size": "xs", "color": "#aaaaaa"},
+                            {"type": "text", "text": end_of_week.strftime("%Y/%m/%d"), "size": "xs", "color": "#aaaaaa"}
+                        ]
+                    }
                 ]
-                if completed_times:
-                    latest = max(completed_times).replace(tzinfo=None)
-                    if start_of_week <= latest <= end_of_week:
-                        members[uid]["weekly_task_done"] += 1
+            }
+        }
 
-        log.append("📌 5️⃣ 組合回報訊息")
-        header = f"📊 任務週報（{format_date(start_of_week)} - {format_date(end_of_week)}）"
-        lines = []
-        for data in members.values():
-            lines.append(
-                f"{data['name']}："
-                f"{data['task_done']} / {data['task_total']} 🧩（本週完成任務 {data['weekly_task_done']} 筆 / 清單 {data['weekly_checklist_done']} 項）"
-            )
-
-        return header + "\n" + "\n".join(lines)
+        return FlexMessage(alt_text="任務週報", contents=FlexContainer.from_json(flex_json))
 
     except Exception as e:
-        log.append(f"❌ 發生錯誤: {str(e)}")
-        return "\n".join(log)
+        return TextMessage(text=f"❌ 週報產生失敗：{e}")
