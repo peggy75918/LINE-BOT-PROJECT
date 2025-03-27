@@ -39,7 +39,9 @@ def generate_weekly_report(group_id):
         log.append("📌 4️⃣ 查詢 checklist...")
         checklist_res = supabase_client.table("task_checklists").select("task_id, is_done, completed_at").in_("task_id", list(task_map.keys())).execute()
         
-        today = datetime.utcnow() + timedelta(hours=8)
+        # ✅ 台灣時間、清除 tzinfo 以便比對
+        tz_tw = timedelta(hours=8)
+        today = (datetime.utcnow() + tz_tw).replace(tzinfo=None)
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
 
@@ -50,16 +52,22 @@ def generate_weekly_report(group_id):
                 if c["is_done"]:
                     members[uid]["completed"] += 1
                     if c["completed_at"]:
-                        complete_time = datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + timedelta(hours=8)
+                        # ✅ 補上 +00:00 時區，轉成台灣時間再移除 tzinfo
+                        complete_time = (
+                            datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + tz_tw
+                        ).replace(tzinfo=None)
                         if start_of_week <= complete_time <= end_of_week:
                             members[uid]["weekly_done"] += 1
 
-        # 建立訊息
         log.append("📌 5️⃣ 組合回報訊息")
         header = f"📊 任務週報（{format_date(start_of_week)} - {format_date(end_of_week)}）"
-        lines = [f"{data['name']}：{data['completed']} / {data['total']} ✅（本週完成 {data['weekly_done']}）" for data in members.values()]
+        lines = [
+            f"{data['name']}：{data['completed']} / {data['total']} ✅（本週完成 {data['weekly_done']}）"
+            for data in members.values()
+        ]
         return header + "\n" + "\n".join(lines)
 
     except Exception as e:
         log.append(f"❌ 發生錯誤: {str(e)}")
         return "\n".join(log)
+
