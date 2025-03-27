@@ -87,6 +87,19 @@ def handle_message(event):
                 )
             )
             return
+
+        # **處理「本週結算」訊息**
+        if user_message == "本週結算":
+            from weekly_report import generate_weekly_report
+            import asyncio
+            report = asyncio.run(generate_weekly_report(group_id))  # ✅ 傳入群組 ID
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=report)]
+                )
+            )
+            return
             
         
         # **檢查使用者是否正在輸入「專案階段數量」**
