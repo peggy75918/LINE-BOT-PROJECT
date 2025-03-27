@@ -88,18 +88,16 @@ def handle_message(event):
             )
             return
 
-        # **處理「本週結算」訊息**
         if user_message == "本週結算":
-            from weekly_report import generate_weekly_report
-            report = generate_weekly_report(group_id)
+            print("✅ 收到『本週結算』指令")  # ✅ 加上 console log
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text=report)]
+                    messages=[TextMessage(text="✅ 測試成功！已收到本週結算指令")]
                 )
             )
             return
-            
+
         
         # **檢查使用者是否正在輸入「專案階段數量」**
         if user_id in user_state and user_state[user_id]["step"] == "waiting_for_stage_count":
