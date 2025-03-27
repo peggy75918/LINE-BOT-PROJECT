@@ -90,11 +90,13 @@ def handle_message(event):
 
         if user_message == "本週結算":
             from weekly_report import generate_weekly_report
-            report = generate_weekly_report(group_id)
+            flex_content = generate_weekly_report(group_id)
+            flex_msg = FlexMessage(alt_text="任務週報", contents=flex_content)
+            
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[report]
+                    messages=[flex_msg]
                 )
             )
             return
