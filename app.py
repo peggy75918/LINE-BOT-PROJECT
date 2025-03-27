@@ -89,15 +89,16 @@ def handle_message(event):
             return
 
         if user_message == "本週結算":
-            from weekly_report import generate_weekly_report
             try:
-                import json
-                from linebot.v3.messaging import FlexMessage, FlexContainer
+                from weekly_report import generate_weekly_report
+                from linebot.v3.messaging import ReplyMessageRequest, TextMessage
         
+                # ⚙️ 呼叫週報產生函式
                 result = generate_weekly_report(group_id)
         
+                # ✅ 判斷是否為錯誤文字
                 if isinstance(result, str):
-                    # 錯誤訊息就用 TextMessage 回傳
+                    # 傳送錯誤訊息到群組
                     line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
@@ -105,25 +106,23 @@ def handle_message(event):
                         )
                     )
                 else:
-                    # 正確回傳 Flex JSON 結構
-                    flex = FlexMessage(
-                        alt_text="📊 任務週報",  # ✅ 不可為空
-                        contents=FlexContainer.from_json(json.dumps(result))  # ✅ 轉為 FlexContainer
-                    )
+                    # ✅ 正確的 FlexMessage，直接使用，不要再包一次
                     line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
-                            messages=[flex.to_dict()]  # ✅ 轉為 dict 發送
+                            messages=[result]
                         )
                     )
             except Exception as e:
+                # 捕捉所有未預期的錯誤
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text=f"❌ 發送週報失敗: {str(e)}")]
+                        messages=[TextMessage(text=f"❌ 發送週報時發生錯誤：{str(e)}")]
                     )
                 )
             return
+
 
 
         
