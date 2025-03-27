@@ -15,7 +15,7 @@
     "crons": [
       {
         "path": "/api/weekly_report.py",
-        "schedule": "*/5 * * * *"
+        "schedule": "30 17 * * *"
       }
     ]
   }
