@@ -50,7 +50,8 @@ def generate_weekly_report(group_id):
         checklist_res = supabase_client.table("task_checklists").select("task_id, is_done, completed_at").in_("task_id", task_ids).execute()
 
         # ⏰ 時間區段
-        today = datetime.utcnow() + timedelta(hours=8)
+        from datetime import datetime, timedelta, timezone
+        today = datetime.now(timezone.utc) + timedelta(hours=8)
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
 
