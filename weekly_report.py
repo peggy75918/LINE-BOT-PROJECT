@@ -2,135 +2,126 @@ import os
 import json
 from datetime import datetime, timedelta
 from supabase import create_client
-from linebot.v3.messaging import (
-    FlexMessage, FlexContainer, Configuration, ApiClient,
-    MessagingApi, PushMessageRequest, TextMessage
-)
 from dotenv import load_dotenv
+from linebot.v3.messaging import FlexMessage, FlexContainer
 
-# Load .env
+# Load environment variables
 load_dotenv()
 
-# LINE Config
-LINE_GROUP_ID = "Cff5327a9fc9323dd8344c1a8789329d9"  # Replace with actual Group ID
-configuration = Configuration(access_token=os.getenv("CHANNEL_ACCESS_TOKEN"))
-
-# Supabase
+# Supabase config
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 supabase_client = create_client(supabase_url, supabase_key)
 
-# Send debug log to group
-def send_debug_message(line_bot_api, group_id, log_lines):
-    debug_text = "🐞 除錯資訊：\n" + "\n".join(log_lines)
-    chunks = [debug_text[i:i+1000] for i in range(0, len(debug_text), 1000)]
-    for chunk in chunks:
-        line_bot_api.push_message(
-            PushMessageRequest(
-                to=group_id,
-                messages=[TextMessage(text=chunk)]
-            )
-        )
-
-# Format date for display
+# Format date function
 def format_date(d):
     return d.strftime("%m/%d")
 
-# Weekly report generator
 def generate_weekly_report(group_id):
-    log = []  # Collect debug logs
-
+    debug_logs = []
     try:
+        debug_logs.append("📌 1️⃣ 查詢最新專案中...")
+        project_res = supabase_client.table("projects").select("id").eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
+        if not project_res.data:
+            return "⚠️ 本群組尚未建立任何專案"
+
+        project_id = project_res.data[0]["id"]
+        debug_logs.append(f"✅ 專案 ID: {project_id}")
+
+        debug_logs.append("📌 2️⃣ 查詢專案成員...")
+        member_res = supabase_client.table("project_members").select("user_id, real_name").eq("project_id", project_id).execute()
+        if not member_res.data:
+            return "⚠️ 尚未加入任何成員"
+
+        members = {m["user_id"]: {
+            "name": m["real_name"],
+            "checklist_total": 0,
+            "checklist_weekly": 0,
+            "task_total": 0,
+            "task_weekly": 0
+        } for m in member_res.data}
+        debug_logs.append(f"👥 成員數量: {len(members)}")
+
+        debug_logs.append("📌 3️⃣ 查詢任務...")
+        task_res = supabase_client.table("tasks").select("id, assignee_id, created_at").eq("project_id", project_id).execute()
+        task_map = {}
+
         today = datetime.utcnow() + timedelta(hours=8)
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
 
-        log.append("📌 1️⃣ 查詢最新專案中...")
-        project_res = supabase_client.table("projects").select("id").eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
-        if not project_res.data:
-            return "⚠️ 本群組尚未建立任何專案"
-        project_id = project_res.data[0]["id"]
-        log.append(f"✅ 專案 ID: {project_id}")
+        for t in task_res.data:
+            uid = t["assignee_id"]
+            if uid in members:
+                members[uid]["task_total"] += 1
+                task_map[t["id"]] = uid
+                try:
+                    created_at = datetime.fromisoformat(t["created_at"].replace("Z", "+00:00")) + timedelta(hours=8)
+                    if start_of_week <= created_at <= end_of_week:
+                        members[uid]["task_weekly"] += 1
+                except Exception as e:
+                    debug_logs.append(f"⚠️ 任務解析錯誤: {str(e)}")
 
-        log.append("📌 2️⃣ 查詢專案成員...")
-        member_res = supabase_client.table("project_members").select("user_id, real_name").eq("project_id", project_id).execute()
-        members = {m["user_id"]: {
-            "name": m["real_name"], "total_tasks": 0, "completed_tasks": 0,
-            "weekly_checklists": 0, "weekly_tasks": set()
-        } for m in member_res.data}
-        log.append(f"✅ 成員數量: {len(members)}")
+        debug_logs.append(f"✅ 有效任務數: {len(task_map)}")
 
-        log.append("📌 3️⃣ 查詢任務...")
-        task_res = supabase_client.table("tasks").select("id, assignee_id").eq("project_id", project_id).execute()
-        task_map = {t["id"]: t["assignee_id"] for t in task_res.data if t["assignee_id"] in members}
-        for assignee in task_map.values():
-            members[assignee]["total_tasks"] += 1
-        log.append(f"✅ 有效任務數: {len(task_map)}")
-
-        log.append("📌 4️⃣ 查詢 checklist...")
+        debug_logs.append("📌 4️⃣ 查詢 checklist...")
         checklist_res = supabase_client.table("task_checklists").select("task_id, is_done, completed_at").in_("task_id", list(task_map.keys())).execute()
+
         for c in checklist_res.data:
             uid = task_map.get(c["task_id"])
-            if not uid:
-                continue
-            if c["is_done"]:
-                members[uid]["completed_tasks"] += 1
-                if c["completed_at"]:
+            if uid:
+                members[uid]["checklist_total"] += 1
+                if c["is_done"] and c["completed_at"]:
                     try:
                         complete_time = datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + timedelta(hours=8)
                         if start_of_week <= complete_time <= end_of_week:
-                            members[uid]["weekly_checklists"] += 1
-                            members[uid]["weekly_tasks"].add(c["task_id"])
+                            members[uid]["checklist_weekly"] += 1
                     except Exception as e:
-                        log.append(f"⚠️ 時間解析錯誤: {str(e)}")
+                        debug_logs.append(f"⚠️ 清單解析錯誤: {str(e)}")
 
-        log.append("📌 5️⃣ 載入 Flex 模板...")
-        with open("weekly.json", "r", encoding="utf-8") as f:
-            template = json.load(f)
+        debug_logs.append("🧩 讀取 Flex 樣板...")
+        try:
+            with open("weekly.json", "r", encoding="utf-8") as f:
+                template = json.load(f)
+        except Exception as e:
+            debug_logs.append(f"❌ Flex 樣板讀取失敗: {str(e)}")
+            return "\n".join(debug_logs)
 
-        log.append("📌 6️⃣ 套用成員資料...")
-        member_blocks = []
-        for m in members.values():
-            member_blocks.extend([
-                {"type": "text", "text": m["name"], "color": "#153448", "margin": "lg"},
-                {"type": "box", "layout": "horizontal", "contents": [
+        try:
+            template["body"]["contents"][1]["text"] = f"{format_date(start_of_week)} - {format_date(end_of_week)}"
+            template["body"]["contents"][-1]["contents"][1]["text"] = end_of_week.strftime("%Y/%m/%d")
+            members_box = template["body"]["contents"][3]["contents"]
+
+            for i, data in enumerate(members.values()):
+                if i > 0:
+                    members_box.append({"type": "separator", "margin": "lg"})
+                members_box.append({"type": "text", "text": data["name"], "margin": "lg", "color": "#153448"})
+                members_box.append({"type": "box", "layout": "horizontal", "contents": [
                     {"type": "text", "text": "本週完成清單", "size": "sm", "color": "#153448"},
-                    {"type": "text", "text": f"{m['weekly_checklists']}項", "size": "sm", "color": "#153448", "align": "end"},
-                ]},
-                {"type": "box", "layout": "horizontal", "contents": [
+                    {"type": "text", "text": f"{data['checklist_weekly']}項", "size": "sm", "color": "#153448", "align": "end"}
+                ]})
+                members_box.append({"type": "box", "layout": "horizontal", "contents": [
                     {"type": "text", "text": "本週完成任務", "size": "sm", "color": "#153448"},
-                    {"type": "text", "text": f"{len(m['weekly_tasks'])}項", "size": "sm", "color": "#153448", "align": "end"},
-                ]},
-                {"type": "box", "layout": "horizontal", "contents": [
+                    {"type": "text", "text": f"{data['task_weekly']}項", "size": "sm", "color": "#153448", "align": "end"}
+                ]})
+                members_box.append({"type": "box", "layout": "horizontal", "contents": [
                     {"type": "text", "text": "專案任務進度", "size": "sm", "color": "#153448"},
-                    {"type": "text", "text": f"{m['completed_tasks']} / {m['total_tasks']}", "size": "sm", "color": "#153448", "align": "end"},
-                ]},
-                {"type": "separator", "margin": "lg"}
-            ])
+                    {"type": "text", "text": f"{data['task_total']} / {data['task_total'] + 0}", "size": "sm", "color": "#153448", "align": "end"}
+                ]})
 
-        # 插入成員統計內容
-        template["body"]["contents"][3]["contents"] = member_blocks
+            debug_logs.append("✅ Flex 樣板完成")
 
-        # 更新週期與截止日
-        template["body"]["contents"][1]["text"] = f"{format_date(start_of_week)} - {format_date(end_of_week)}"
-        template["body"]["contents"][6]["contents"][1]["text"] = today.strftime("%Y/%m/%d")
+            return FlexMessage(
+                alt_text="任務週報",
+                contents=FlexContainer.from_json(json.dumps(template))
+            )
 
-        flex_container = FlexContainer.from_json(json.dumps(template))
-        flex_message = FlexMessage(alt_text="📊 任務週報", contents=flex_container)
-
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.push_message(PushMessageRequest(
-                to=group_id,
-                messages=[flex_message]
-            ))
+        except Exception as e:
+            debug_logs.append(f"❌ Flex 樣板錯誤: {str(e)}")
+            return "\n".join(debug_logs)
 
     except Exception as e:
-        log.append("❌ 發送報表失敗")
-        log.append(str(e))
-        import traceback
-        log.append(traceback.format_exc())
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            send_debug_message(line_bot_api, group_id, log)
+        debug_logs.append(f"❌ 發送週報失敗: {str(e)}")
+        return "\n".join(debug_logs)
+
 
