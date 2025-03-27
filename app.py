@@ -91,12 +91,10 @@ def handle_message(event):
         if user_message == "本週結算":
             from weekly_report import generate_weekly_report
             try:
-                import json
-                # 取得 FlexMessage 回報結果（已是 FlexMessage 物件）
                 result = generate_weekly_report(group_id)
         
                 if isinstance(result, str):
-                    # 是錯誤訊息（字串）就直接顯示
+                    # 是錯誤訊息（字串）
                     line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
@@ -104,15 +102,20 @@ def handle_message(event):
                         )
                     )
                 else:
-                    # 是 FlexMessage，使用 .to_dict() 轉換
+                    from linebot.v3.messaging import FlexMessage
+                    # ✅ 用 FlexMessage 建立物件並正確指定 alt_text 和 contents
+                    flex = FlexMessage(
+                        alt_text="📊 任務週報",
+                        contents=result  # result 是一個 dict 格式（Flex Container JSON）
+                    )
+                    # ✅ 傳送 Flex Message，記得轉 dict
                     line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
-                            messages=[result.to_dict()]  # ✅ 正確用法
+                            messages=[flex.to_dict()]
                         )
                     )
             except Exception as e:
-                # 例外處理回報
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
