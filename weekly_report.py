@@ -2,96 +2,135 @@ import os
 import json
 from datetime import datetime, timedelta
 from supabase import create_client
+from linebot.v3.messaging import (
+    FlexMessage, FlexContainer, Configuration, ApiClient,
+    MessagingApi, PushMessageRequest, TextMessage
+)
 from dotenv import load_dotenv
-from linebot.v3.messaging.models import FlexMessage, FlexContainer
 
+# Load .env
 load_dotenv()
 
-supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
+# LINE Config
+LINE_GROUP_ID = "Cff5327a9fc9323dd8344c1a8789329d9"  # Replace with actual Group ID
+configuration = Configuration(access_token=os.getenv("CHANNEL_ACCESS_TOKEN"))
 
-# 時區與時間處理
+# Supabase
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+supabase_client = create_client(supabase_url, supabase_key)
+
+# Send debug log to group
+def send_debug_message(line_bot_api, group_id, log_lines):
+    debug_text = "🐞 除錯資訊：\n" + "\n".join(log_lines)
+    chunks = [debug_text[i:i+1000] for i in range(0, len(debug_text), 1000)]
+    for chunk in chunks:
+        line_bot_api.push_message(
+            PushMessageRequest(
+                to=group_id,
+                messages=[TextMessage(text=chunk)]
+            )
+        )
+
+# Format date for display
 def format_date(d):
     return d.strftime("%m/%d")
 
+# Weekly report generator
 def generate_weekly_report(group_id):
+    log = []  # Collect debug logs
+
     try:
-        # ↑ 本週區間
         today = datetime.utcnow() + timedelta(hours=8)
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
 
-        # 1. 查詢專案
-        project = supabase.table("projects").select("id").eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
-        if not project.data:
-            return TextMessage(text="⚠️ 本群組尚未建立任何專案")
+        log.append("📌 1️⃣ 查詢最新專案中...")
+        project_res = supabase_client.table("projects").select("id").eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
+        if not project_res.data:
+            return "⚠️ 本群組尚未建立任何專案"
+        project_id = project_res.data[0]["id"]
+        log.append(f"✅ 專案 ID: {project_id}")
 
-        project_id = project.data[0]["id"]
+        log.append("📌 2️⃣ 查詢專案成員...")
+        member_res = supabase_client.table("project_members").select("user_id, real_name").eq("project_id", project_id).execute()
+        members = {m["user_id"]: {
+            "name": m["real_name"], "total_tasks": 0, "completed_tasks": 0,
+            "weekly_checklists": 0, "weekly_tasks": set()
+        } for m in member_res.data}
+        log.append(f"✅ 成員數量: {len(members)}")
 
-        # 2. 查詢專案成員
-        members = supabase.table("project_members").select("user_id, real_name").eq("project_id", project_id).execute().data
-        member_map = {m["user_id"]: {"name": m["real_name"], "checklist": 0, "weekly_check": 0, "tasks": 0, "weekly_tasks": 0} for m in members}
+        log.append("📌 3️⃣ 查詢任務...")
+        task_res = supabase_client.table("tasks").select("id, assignee_id").eq("project_id", project_id).execute()
+        task_map = {t["id"]: t["assignee_id"] for t in task_res.data if t["assignee_id"] in members}
+        for assignee in task_map.values():
+            members[assignee]["total_tasks"] += 1
+        log.append(f"✅ 有效任務數: {len(task_map)}")
 
-        # 3. 查任務
-        tasks = supabase.table("tasks").select("id, assignee_id").eq("project_id", project_id).execute().data
-        task_map = {t["id"]: t["assignee_id"] for t in tasks if t["assignee_id"] in member_map}
-        for assignee_id in task_map.values():
-            member_map[assignee_id]["tasks"] += 1
-
-        # 4. 查 checklists
-        checklist = supabase.table("task_checklists").select("task_id, is_done, completed_at").in_("task_id", list(task_map.keys())).execute().data
-
-        for item in checklist:
-            uid = task_map.get(item["task_id"])
+        log.append("📌 4️⃣ 查詢 checklist...")
+        checklist_res = supabase_client.table("task_checklists").select("task_id, is_done, completed_at").in_("task_id", list(task_map.keys())).execute()
+        for c in checklist_res.data:
+            uid = task_map.get(c["task_id"])
             if not uid:
                 continue
-            member_map[uid]["checklist"] += 1
-            if item["is_done"]:
-                # weekly checklist 完成
-                if item["completed_at"]:
-                    completed_time = datetime.fromisoformat(item["completed_at"].replace("Z", "+00:00")) + timedelta(hours=8)
-                    if start_of_week <= completed_time <= end_of_week:
-                        member_map[uid]["weekly_check"] += 1
+            if c["is_done"]:
+                members[uid]["completed_tasks"] += 1
+                if c["completed_at"]:
+                    try:
+                        complete_time = datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + timedelta(hours=8)
+                        if start_of_week <= complete_time <= end_of_week:
+                            members[uid]["weekly_checklists"] += 1
+                            members[uid]["weekly_tasks"].add(c["task_id"])
+                    except Exception as e:
+                        log.append(f"⚠️ 時間解析錯誤: {str(e)}")
 
-        # 本週完成的任務（所有 checklist 完成）
-        for tid, uid in task_map.items():
-            check_items = [c for c in checklist if c["task_id"] == tid]
-            if check_items and all(c["is_done"] for c in check_items):
-                if any(
-                    (datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00")) + timedelta(hours=8)).date() >= start_of_week.date()
-                    for c in check_items if c["completed_at"]
-                ):
-                    member_map[uid]["weekly_tasks"] += 1
-
-        # ↑ 整合成 FlexMessage
+        log.append("📌 5️⃣ 載入 Flex 模板...")
         with open("weekly.json", "r", encoding="utf-8") as f:
-            flex_data = json.load(f)
+            template = json.load(f)
 
-        flex_data["body"]["contents"][1]["text"] = f"{format_date(start_of_week)} - {format_date(end_of_week)}"
-        flex_data["body"]["contents"][-1]["contents"][1]["text"] = today.strftime("%Y/%m/%d")
-
-        members_content = []
-        for mem in member_map.values():
-            members_content += [
-                {"type": "text", "text": mem["name"], "color": "#153448"},
+        log.append("📌 6️⃣ 套用成員資料...")
+        member_blocks = []
+        for m in members.values():
+            member_blocks.extend([
+                {"type": "text", "text": m["name"], "color": "#153448", "margin": "lg"},
                 {"type": "box", "layout": "horizontal", "contents": [
                     {"type": "text", "text": "本週完成清單", "size": "sm", "color": "#153448"},
-                    {"type": "text", "text": f"{mem['weekly_check']}項", "size": "sm", "color": "#153448", "align": "end"},
+                    {"type": "text", "text": f"{m['weekly_checklists']}項", "size": "sm", "color": "#153448", "align": "end"},
                 ]},
                 {"type": "box", "layout": "horizontal", "contents": [
                     {"type": "text", "text": "本週完成任務", "size": "sm", "color": "#153448"},
-                    {"type": "text", "text": f"{mem['weekly_tasks']}項", "size": "sm", "color": "#153448", "align": "end"},
+                    {"type": "text", "text": f"{len(m['weekly_tasks'])}項", "size": "sm", "color": "#153448", "align": "end"},
                 ]},
                 {"type": "box", "layout": "horizontal", "contents": [
                     {"type": "text", "text": "專案任務進度", "size": "sm", "color": "#153448"},
-                    {"type": "text", "text": f"{mem['weekly_tasks']} / {mem['tasks']}", "size": "sm", "color": "#153448", "align": "end"},
+                    {"type": "text", "text": f"{m['completed_tasks']} / {m['total_tasks']}", "size": "sm", "color": "#153448", "align": "end"},
                 ]},
                 {"type": "separator", "margin": "lg"}
-            ]
+            ])
 
-        flex_data["body"]["contents"][3]["contents"] = members_content
+        # 插入成員統計內容
+        template["body"]["contents"][3]["contents"] = member_blocks
 
-        return FlexMessage(alt_text="本週任務週報", contents=FlexContainer.from_json(json.dumps(flex_data)))
+        # 更新週期與截止日
+        template["body"]["contents"][1]["text"] = f"{format_date(start_of_week)} - {format_date(end_of_week)}"
+        template["body"]["contents"][6]["contents"][1]["text"] = today.strftime("%Y/%m/%d")
+
+        flex_container = FlexContainer.from_json(json.dumps(template))
+        flex_message = FlexMessage(alt_text="📊 任務週報", contents=flex_container)
+
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.push_message(PushMessageRequest(
+                to=group_id,
+                messages=[flex_message]
+            ))
 
     except Exception as e:
-        return TextMessage(text=f"❌ 發生錯誤: {str(e)}")
+        log.append("❌ 發送報表失敗")
+        log.append(str(e))
+        import traceback
+        log.append(traceback.format_exc())
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            send_debug_message(line_bot_api, group_id, log)
 
