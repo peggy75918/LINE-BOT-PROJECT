@@ -91,14 +91,12 @@ def handle_message(event):
         if user_message == "本週結算":
             from weekly_report import generate_weekly_report
             try:
-                from linebot.v3.messaging import FlexMessage, FlexContainer
                 import json
-        
-                # 取得 FlexMessage 回報
+                # 取得 FlexMessage 回報結果（已是 FlexMessage 物件）
                 result = generate_weekly_report(group_id)
         
                 if isinstance(result, str):
-                    # 如果是錯誤訊息（字串），就回傳錯誤
+                    # 是錯誤訊息（字串）就直接顯示
                     line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
@@ -106,18 +104,15 @@ def handle_message(event):
                         )
                     )
                 else:
-                    # 否則是 FlexContainer 結果
-                    flex = FlexMessage(
-                        alt_text="📊 任務週報",
-                        contents=FlexContainer.from_json(json.dumps(result))
-                    )
+                    # 是 FlexMessage，使用 .to_dict() 轉換
                     line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
-                            messages=[flex]
+                            messages=[result.to_dict()]  # ✅ 正確用法
                         )
                     )
             except Exception as e:
+                # 例外處理回報
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
@@ -125,6 +120,7 @@ def handle_message(event):
                     )
                 )
             return
+
         
         # **檢查使用者是否正在輸入「專案階段數量」**
         if user_id in user_state and user_state[user_id]["step"] == "waiting_for_stage_count":
