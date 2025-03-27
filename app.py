@@ -89,11 +89,12 @@ def handle_message(event):
             return
 
         if user_message == "本週結算":
-            print("✅ 收到『本週結算』指令")  # ✅ 加上 console log
+            from weekly_report import generate_weekly_report
+            report = generate_weekly_report(group_id)
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text="✅ 測試成功！已收到本週結算指令")]
+                    messages=[TextMessage(text=report)]
                 )
             )
             return
