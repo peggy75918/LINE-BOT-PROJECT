@@ -11,11 +11,5 @@
         "src": "/(.*)",
         "dest": "app.py"
       }
-    ],
-    "crons": [
-      {
-        "path": "/api/weekly_report.py",
-        "schedule": "30 17 * * *"
-      }
     ]
   }

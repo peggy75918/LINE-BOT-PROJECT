@@ -67,7 +67,6 @@ def handle_message(event):
         print(f"📩 收到訊息: {user_message} (來自: {user_id or group_id})")  # ✅ Debug log
 
         # **處理「開始使用」訊息**
-        print(f"📩 收到的訊息內容: {user_message}")  # 確認收到的訊息
         if user_message == "開始使用":
             # 讀取 JSON 檔案
             with open("card.json", "r", encoding="utf-8") as f:
@@ -87,7 +86,19 @@ def handle_message(event):
                 )
             )
             return
-            
+        
+        # **處理「本週結算」訊息**
+        if user_message == "本週結算":
+            from weekly_report import generate_weekly_report
+            import asyncio
+            report = asyncio.run(generate_weekly_report(group_id))  # ✅ 傳入群組 ID
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=report)]
+                )
+            )
+            return
         
         # **檢查使用者是否正在輸入「專案階段數量」**
         if user_id in user_state and user_state[user_id]["step"] == "waiting_for_stage_count":
