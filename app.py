@@ -91,8 +91,7 @@ def handle_message(event):
         # **處理「本週結算」訊息**
         if user_message == "本週結算":
             from weekly_report import generate_weekly_report
-            import asyncio
-            report = asyncio.run(generate_weekly_report(group_id))  # ✅ 傳入群組 ID
+            report = generate_weekly_report(group_id)
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
