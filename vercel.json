@@ -16,11 +16,5 @@
       "api/weekly_report.py": {
         "runtime": "python3.9"
       }
-    },
-    "cron": [
-      {
-        "path": "/api/weekly_report.py",
-        "schedule": "*/5 * * * *"  
-      }
-    ]
+    }
   }
