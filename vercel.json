@@ -11,10 +11,5 @@
         "src": "/(.*)",
         "dest": "app.py"
       }
-    ],
-    "functions": {
-      "api/weekly_report.py": {
-        "runtime": "python3.9"
-      }
-    }
+    ]
   }
