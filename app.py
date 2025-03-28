@@ -7,10 +7,12 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import os
+import re
 import uuid  # ✅ 新增 UUID 產生功能
 import supabase
 import json
 from dotenv import load_dotenv
+from datetime import datetime
 
 # 讀取 .env 環境變數
 load_dotenv()
@@ -51,7 +53,34 @@ def callback():
 
     return 'OK'
 
+def handle_share_message(user_message, line_id, project_id, supabase_client):
+    match = re.match(r"#分享\s+(\S+)\s+(\S+)\s+(https?://\S+)(?:\s+(.*))?", user_message)
+    if not match:
+        return "❗️格式錯誤，請使用：#分享 資源名稱 標籤 連結 描述（描述可省略）"
 
+    title, tag, link, description = match.groups()
+    description = description or ""
+
+    resource_id = str(uuid.uuid4())
+
+    try:
+        response = supabase_client.table("shared_resources").insert({
+            "id": resource_id,
+            "user_id": line_id,
+            "project_id": project_id,
+            "title": title,
+            "tag": tag,
+            "link": link,
+            "description": description,
+            "created_at": datetime.utcnow().isoformat()
+        }).execute()
+
+        if response.error:
+            return f"❌ 儲存失敗：{response.error.message}"
+
+        return f"✅ 資源「{title}」已成功分享！"
+    except Exception as e:
+        return f"❌ 儲存時發生錯誤：{str(e)}"
 
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
@@ -128,6 +157,35 @@ def handle_message(event):
                 )
             return
 
+        # 分享資源
+        if user_message.startswith("#分享"):
+            # 查詢使用者所在群組的最新專案 ID
+            try:
+                project_response = supabase_client.table("projects") \
+                    .select("id") \
+                    .eq("group_id", group_id) \
+                    .order("created_at", desc=True) \
+                    .limit(1) \
+                    .execute()
+        
+                if not project_response.data:
+                    reply_text = "⚠️ 找不到群組中的專案，請先建立一個專案。"
+                else:
+                    project_id = project_response.data[0]["id"]
+                    # 呼叫剛剛你整合的函式
+                    from yourmodule import handle_share_message  # ✅ 修改為實際函式匯入位置
+                    reply_text = handle_share_message(user_message, line_id=user_id, project_id=project_id, supabase_client=supabase_client)
+        
+            except Exception as e:
+                reply_text = f"❌ 處理分享內容失敗：{str(e)}"
+        
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=reply_text)]
+                )
+            )
+            return
 
         
         # **檢查使用者是否正在輸入「專案階段數量」**
