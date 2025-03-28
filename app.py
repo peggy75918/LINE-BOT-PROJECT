@@ -164,20 +164,37 @@ def handle_message(event):
 
         # 分享資源
         if user_message.startswith("#分享"):
-            reply_debug(line_bot_api, event.reply_token, f"收到分享訊息：{user_message}")
             try:
                 project_res = supabase_client.table("projects").select("id") \
                     .eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
                 if not project_res.data:
-                    reply_debug(line_bot_api, event.reply_token, "找不到任何專案")
+                    line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text="⚠️ 找不到群組中的專案，請先建立一個專案")]
+                        )
+                    )
                     return
+        
                 project_id = project_res.data[0]["id"]
                 result = handle_share_message(user_message, user_id, project_id)
-                reply_debug(line_bot_api, event.reply_token, result)
+        
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=result)]
+                    )
+                )
                 return
             except Exception as e:
-                reply_debug(line_bot_api, event.reply_token, f"處理 #分享 時錯誤：{str(e)}")
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=f"❌ 分享過程中發生錯誤：{str(e)}")]
+                    )
+                )
                 return
+
 
 
         
