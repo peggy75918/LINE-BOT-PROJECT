@@ -124,23 +124,27 @@ def handle_message(event):
 
         # **處理「呼叫飄飄」訊息**
         if user_message == "呼叫飄飄":
-            # 讀取 JSON 檔案
-            with open("piao.json", "r", encoding="utf-8") as f:
-                flex_json = json.load(f)
-        
-            # 轉換為 FlexContainer
-            flex_content = FlexContainer.from_json(json.dumps(flex_json))
-        
-            # 建立 FlexMessage
-            flex_message = FlexMessage(alt_text="呼叫飄飄~", contents=flex_content)
-        
-            # 發送訊息
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[flex_message]
+            try:
+                with open("piao.json", "r", encoding="utf-8") as f:
+                    flex_json = json.load(f)
+
+                flex_content = FlexContainer.from_json(json.dumps(flex_json))
+                flex_message = FlexMessage(alt_text="呼叫飄飄~", contents=flex_content)
+
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[flex_message]
+                    )
                 )
-            )
+            except Exception as e:
+                print(f"❌ 載入 piao.json 發生錯誤：{e}")
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text="❌ 無法載入飄飄畫面，請稍後再試！")]
+                    )
+                )
             return
 
 
