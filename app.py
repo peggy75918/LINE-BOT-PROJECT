@@ -81,7 +81,7 @@ def reply_debug(api, token, text):
         api.reply_message(
             ReplyMessageRequest(
                 reply_token=token,
-                messages=[TextMessage(text=f"🐞 Debug：{text}")]
+                messages=[TextMessage(text=f"{text}")]
             )
         )
     except Exception as e:
@@ -178,14 +178,9 @@ def handle_message(event):
         
                 project_id = project_res.data[0]["id"]
                 result = handle_share_message(user_message, user_id, project_id)
-        
-                line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text=result)]
-                    )
-                )
+                reply_debug(line_bot_api, event.reply_token, result)  # ✅ 用 result
                 return
+        
             except Exception as e:
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
@@ -194,8 +189,6 @@ def handle_message(event):
                     )
                 )
                 return
-
-
 
         
         # **檢查使用者是否正在輸入「專案階段數量」**
