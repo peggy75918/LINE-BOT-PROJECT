@@ -76,13 +76,11 @@ def handle_share_message(user_message, line_id, project_id):
     except Exception as e:
         return f"❌ 儲存失敗：{str(e)}"
 
-def reply_debug(api, token, text):
+def reply_debug(api, user_id, text):
     try:
-        api.reply_message(
-            ReplyMessageRequest(
-                reply_token=token,
-                messages=[TextMessage(text=f"{text}")]
-            )
+        api.push_message(
+            to=user_id,
+            messages=[TextMessage(text=f"🐞 Debug：{text}")]
         )
     except Exception as e:
         print(f"⚠️ Debug 傳送失敗：{e}")
@@ -98,6 +96,8 @@ def handle_message(event):
         user_id = event.source.user_id if hasattr(event.source, "user_id") else None
         group_id = event.source.group_id if hasattr(event.source, "group_id") else None
         
+        reply_debug(line_bot_api, user_id, f"收到訊息：{user_message}，來自：{group_id}")
+
         print(f"📩 收到訊息: {user_message} (來自: {user_id or group_id})")  # ✅ Debug log
 
         # **處理「開始使用」訊息**
