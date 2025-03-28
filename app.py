@@ -76,17 +76,16 @@ def handle_share_message(user_message, line_id, project_id):
     except Exception as e:
         return f"❌ 儲存失敗：{str(e)}"
 
-def reply_debug(line_bot_api, token, text):
+def reply_debug(api, token, text):
     try:
-        line_bot_api.reply_message(
+        api.reply_message(
             ReplyMessageRequest(
                 reply_token=token,
                 messages=[TextMessage(text=f"🐞 Debug：{text}")]
             )
         )
     except Exception as e:
-        print(f"⚠️ 無法傳送 debug 訊息：{e}")
-
+        print(f"⚠️ Debug 傳送失敗：{e}")
 
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
@@ -165,29 +164,21 @@ def handle_message(event):
 
         # 分享資源
         if user_message.startswith("#分享"):
-            # 查詢使用者所在群組的最新專案 ID
+            reply_debug(line_bot_api, event.reply_token, f"收到分享訊息：{user_message}")
             try:
                 project_res = supabase_client.table("projects").select("id") \
                     .eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
                 if not project_res.data:
-                    reply_debug_message(line_bot_api, event.reply_token, "找不到任何專案")
+                    reply_debug(line_bot_api, event.reply_token, "找不到任何專案")
                     return
-                    
-                else:
-                    project_id = project_res.data[0]["id"]
-                    reply_text = handle_share_message(user_message, user_id, project_id)
-                    reply_debug_message(line_bot_api, event.reply_token, reply_text)
-                    return
-                    
+                project_id = project_res.data[0]["id"]
+                result = handle_share_message(user_message, user_id, project_id)
+                reply_debug(line_bot_api, event.reply_token, result)
+                return
             except Exception as e:
-                reply_debug_message(line_bot_api, event.reply_token, f"處理 #分享 失敗：{str(e)}")
+                reply_debug(line_bot_api, event.reply_token, f"處理 #分享 時錯誤：{str(e)}")
                 return
 
-            line_bot_api.reply_message(ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=reply_text)]
-            ))
-            return
 
         
         # **檢查使用者是否正在輸入「專案階段數量」**
