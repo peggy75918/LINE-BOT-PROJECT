@@ -76,6 +76,18 @@ def handle_share_message(user_message, line_id, project_id):
     except Exception as e:
         return f"❌ 儲存失敗：{str(e)}"
 
+def reply_debug(line_bot_api, token, text):
+    try:
+        line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=token,
+                messages=[TextMessage(text=f"🐞 Debug：{text}")]
+            )
+        )
+    except Exception as e:
+        print(f"⚠️ 無法傳送 debug 訊息：{e}")
+
+
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     """處理 LINE 訊息"""
@@ -158,12 +170,18 @@ def handle_message(event):
                 project_res = supabase_client.table("projects").select("id") \
                     .eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
                 if not project_res.data:
-                    reply_text = "⚠️ 找不到群組中的專案，請先建立一個專案。"
+                    reply_debug_message(line_bot_api, event.reply_token, "找不到任何專案")
+                    return
+                    
                 else:
                     project_id = project_res.data[0]["id"]
-                    reply_text = handle_share_message(msg, user_id, project_id)
+                    reply_text = handle_share_message(user_message, user_id, project_id)
+                    reply_debug_message(line_bot_api, event.reply_token, reply_text)
+                    return
+                    
             except Exception as e:
-                reply_text = f"❌ 處理分享時發生錯誤：{str(e)}"
+                reply_debug_message(line_bot_api, event.reply_token, f"處理 #分享 失敗：{str(e)}")
+                return
 
             line_bot_api.reply_message(ReplyMessageRequest(
                 reply_token=event.reply_token,
