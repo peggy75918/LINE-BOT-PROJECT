@@ -1,0 +1,69 @@
+{
+  "type": "carousel",
+  "contents": [
+    {
+      "type": "bubble",
+      "size": "micro",
+      "hero": {
+        "type": "image",
+        "url": "https://i.ibb.co/xt55QQXh/17.png",
+        "size": "full",
+        "aspectRatio": "200:200",
+        "aspectMode": "cover"
+      },
+      "action": {
+        "type": "uri",
+        "label": "action",
+        "uri": "https://project-piaopiao-v1.vercel.app/"
+      }
+    },
+    {
+      "type": "bubble",
+      "size": "micro",
+      "hero": {
+        "type": "image",
+        "url": "https://i.ibb.co/RG6GJQ8Q/18.png",
+        "size": "full",
+        "aspectMode": "cover",
+        "aspectRatio": "200:200"
+      },
+      "action": {
+        "type": "message",
+        "label": "action",
+        "text": "本週結算"
+      }
+    },
+    {
+      "type": "bubble",
+      "size": "micro",
+      "hero": {
+        "type": "image",
+        "url": "https://i.ibb.co/DgCJzZYV/20.png",
+        "size": "full",
+        "aspectMode": "cover",
+        "aspectRatio": "200:200"
+      },
+      "action": {
+        "type": "message",
+        "label": "action",
+        "text": "#分享 資源名稱 資源分類 相關連結 資料描述（選填）"
+      }
+    },
+    {
+      "type": "bubble",
+      "size": "micro",
+      "hero": {
+        "type": "image",
+        "url": "https://i.ibb.co/zVmr4jz2/19.png",
+        "size": "full",
+        "aspectRatio": "200:200",
+        "aspectMode": "cover"
+      },
+      "action": {
+        "type": "uri",
+        "label": "action",
+        "uri": "https://docs.google.com/document/d/1WXTpCjn5F2lAeChYT9-LWeGG2n7xFJv-Ao5JUjcsrQc/edit?tab=t.0"
+      }
+    }
+  ]
+}
