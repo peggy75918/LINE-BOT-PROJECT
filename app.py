@@ -53,7 +53,7 @@ def callback():
 
     return 'OK'
 
-def handle_share_message(user_message, line_id, project_id, supabase_client):
+def handle_share_message(user_message, line_id, project_id):
     match = re.match(r"#分享\s+(\S+)\s+(\S+)\s+(https?://\S+)(?:\s+(.*))?", user_message)
     if not match:
         return "❗️格式錯誤，請使用：#分享 資源名稱 標籤 連結 描述（描述可省略）"
@@ -61,11 +61,9 @@ def handle_share_message(user_message, line_id, project_id, supabase_client):
     title, tag, link, description = match.groups()
     description = description or ""
 
-    resource_id = str(uuid.uuid4())
-
     try:
-        response = supabase_client.table("shared_resources").insert({
-            "id": resource_id,
+        supabase_client.table("shared_resources").insert({
+            "id": str(uuid.uuid4()),
             "user_id": line_id,
             "project_id": project_id,
             "title": title,
@@ -74,13 +72,9 @@ def handle_share_message(user_message, line_id, project_id, supabase_client):
             "description": description,
             "created_at": datetime.utcnow().isoformat()
         }).execute()
-
-        if response.error:
-            return f"❌ 儲存失敗：{response.error.message}"
-
         return f"✅ 資源「{title}」已成功分享！"
     except Exception as e:
-        return f"❌ 儲存時發生錯誤：{str(e)}"
+        return f"❌ 儲存失敗：{str(e)}"
 
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
@@ -161,30 +155,20 @@ def handle_message(event):
         if user_message.startswith("#分享"):
             # 查詢使用者所在群組的最新專案 ID
             try:
-                project_response = supabase_client.table("projects") \
-                    .select("id") \
-                    .eq("group_id", group_id) \
-                    .order("created_at", desc=True) \
-                    .limit(1) \
-                    .execute()
-        
-                if not project_response.data:
+                project_res = supabase_client.table("projects").select("id") \
+                    .eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
+                if not project_res.data:
                     reply_text = "⚠️ 找不到群組中的專案，請先建立一個專案。"
                 else:
-                    project_id = project_response.data[0]["id"]
-                    # 呼叫剛剛你整合的函式
-                    from yourmodule import handle_share_message  # ✅ 修改為實際函式匯入位置
-                    reply_text = handle_share_message(user_message, line_id=user_id, project_id=project_id, supabase_client=supabase_client)
-        
+                    project_id = project_res.data[0]["id"]
+                    reply_text = handle_share_message(msg, user_id, project_id)
             except Exception as e:
-                reply_text = f"❌ 處理分享內容失敗：{str(e)}"
-        
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=reply_text)]
-                )
-            )
+                reply_text = f"❌ 處理分享時發生錯誤：{str(e)}"
+
+            line_bot_api.reply_message(ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=reply_text)]
+            ))
             return
 
         
