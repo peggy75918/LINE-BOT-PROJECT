@@ -122,6 +122,28 @@ def handle_message(event):
             )
             return
 
+        # **處理「呼叫飄飄」訊息**
+        print(f"📩 收到的訊息內容: {user_message}")  # 確認收到的訊息
+        if user_message == "呼叫飄飄":
+            # 讀取 JSON 檔案
+            with open("piao.json", "r", encoding="utf-8") as f:
+                flex_json = json.load(f)
+
+            # 轉換為 FlexContainer
+            flex_content = FlexContainer.from_json(json.dumps(flex_json))
+
+            # 建立 FlexMessage
+            flex_message = FlexMessage(alt_text="呼叫飄飄~", contents=flex_content)
+
+            # 發送訊息
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[flex_message]
+                )
+            )
+            return
+
         if user_message == "本週結算":
             try:
                 from weekly_report import generate_weekly_report
