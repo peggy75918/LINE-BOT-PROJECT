@@ -3,7 +3,8 @@ from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
     Configuration, ApiClient, MessagingApi,
-    ReplyMessageRequest, PushMessageRequest, TextMessage, FlexMessage, FlexContainer
+    ReplyMessageRequest, PushMessageRequest, 
+    TextMessage, FlexMessage, FlexContainer, PostbackEvent
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import os
