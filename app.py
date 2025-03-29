@@ -76,11 +76,13 @@ def handle_share_message(user_message, line_id, project_id):
     except Exception as e:
         return f"❌ 儲存失敗：{str(e)}"
 
-def reply_debug(api, user_id, text):
+def push_debug_message(api, user_id_or_group_id, text):
     try:
         api.push_message(
-            to=user_id,
-            messages=[TextMessage(text=f"🐞 Debug：{text}")]
+            PushMessageRequest(
+                to=user_id_or_group_id,
+                messages=[TextMessage(text=f"🐞 Debug：{text}")]
+            )
         )
     except Exception as e:
         print(f"⚠️ Debug 傳送失敗：{e}")
@@ -152,7 +154,7 @@ def handle_message(event):
             try:
                 from weekly_report import generate_weekly_report
                 from linebot.v3.messaging import ReplyMessageRequest, TextMessage, FlexMessage, FlexContainer
-                import json
+                
         
                 # ⚙️ 呼叫週報產生函式（會回傳 JSON dict 或錯誤訊息）
                 result = generate_weekly_report(group_id)
