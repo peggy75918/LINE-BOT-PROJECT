@@ -98,10 +98,6 @@ def handle_message(event):
         # **判斷訊息來自個人還是群組**
         user_id = event.source.user_id if hasattr(event.source, "user_id") else None
         group_id = event.source.group_id if hasattr(event.source, "group_id") else None
-        
-        push_debug_message(line_bot_api, user_id, f"收到訊息：{user_message}，來自：{group_id}")
-
-        print(f"📩 收到訊息: {user_message} (來自: {user_id or group_id})")  # ✅ Debug log
 
         # **處理「開始使用」訊息**
         print(f"📩 收到的訊息內容: {user_message}")  # 確認收到的訊息
@@ -205,7 +201,6 @@ def handle_message(event):
         
                 project_id = project_res.data[0]["id"]
                 result = handle_share_message(user_message, user_id, project_id)
-                push_debug_message(line_bot_api, event.reply_token, result)  # ✅ 用 result
                 return
         
             except Exception as e:
