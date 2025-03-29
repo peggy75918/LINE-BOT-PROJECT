@@ -3,7 +3,7 @@ from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
     Configuration, ApiClient, MessagingApi,
-    ReplyMessageRequest, TextMessage, FlexMessage, FlexContainer
+    ReplyMessageRequest, PushMessageRequest, TextMessage, FlexMessage, FlexContainer
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import os
@@ -153,9 +153,7 @@ def handle_message(event):
         if user_message == "本週結算":
             try:
                 from weekly_report import generate_weekly_report
-                from linebot.v3.messaging import ReplyMessageRequest, TextMessage, FlexMessage, FlexContainer
                 
-        
                 # ⚙️ 呼叫週報產生函式（會回傳 JSON dict 或錯誤訊息）
                 result = generate_weekly_report(group_id)
         
@@ -206,7 +204,7 @@ def handle_message(event):
         
                 project_id = project_res.data[0]["id"]
                 result = handle_share_message(user_message, user_id, project_id)
-                reply_debug(line_bot_api, event.reply_token, result)  # ✅ 用 result
+                push_debug_message(line_bot_api, event.reply_token, result)  # ✅ 用 result
                 return
         
             except Exception as e:
