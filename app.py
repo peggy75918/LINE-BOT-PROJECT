@@ -98,7 +98,7 @@ def handle_message(event):
         user_id = event.source.user_id if hasattr(event.source, "user_id") else None
         group_id = event.source.group_id if hasattr(event.source, "group_id") else None
         
-        reply_debug(line_bot_api, user_id, f"收到訊息：{user_message}，來自：{group_id}")
+        push_debug_message(line_bot_api, user_id, f"收到訊息：{user_message}，來自：{group_id}")
 
         print(f"📩 收到訊息: {user_message} (來自: {user_id or group_id})")  # ✅ Debug log
 
