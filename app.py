@@ -4,9 +4,9 @@ from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
     Configuration, ApiClient, MessagingApi,
     ReplyMessageRequest, PushMessageRequest, 
-    TextMessage, FlexMessage, FlexContainer, PostbackEvent
+    TextMessage, FlexMessage, FlexContainer
 )
-from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 import os
 import re
 import uuid  # ✅ 新增 UUID 產生功能
