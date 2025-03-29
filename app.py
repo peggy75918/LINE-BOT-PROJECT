@@ -346,7 +346,7 @@ def handle_postback(event):
         print(f"🟡 收到 Postback：{data}（來自 {user_id}）")
 
         if data == "explain_share":
-            reply_text = "📌 請根據「#分享 名稱 標籤（如程式、UI/UX） 相關連結 描述（選填）」格式輸入想分享的資源或工具"
+            reply_text = "請根據「#分享 名稱 標籤 相關連結 描述（選填）」格式輸入想分享的資源或工具，如「#分享 Figma UI/UX https://www.figma.com/ 視覺設計工具」"
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
