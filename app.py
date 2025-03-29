@@ -131,7 +131,7 @@ def handle_message(event):
                     flex_json = json.load(f)
 
                 flex_content = FlexContainer.from_json(json.dumps(flex_json))
-                flex_message = FlexMessage(alt_text="呼叫飄飄~", contents=flex_content)
+                flex_message = FlexMessage(alt_text="呼叫飄飄👻", contents=flex_content)
 
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
@@ -332,6 +332,26 @@ def handle_message(event):
                 messages=[TextMessage(text=reply_text)]
             )
         )
+
+@line_handler.add(PostbackEvent)
+def handle_postback(event):
+    """處理 postback 點擊事件"""
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+
+        data = event.postback.data
+        user_id = event.source.user_id
+
+        print(f"🟡 收到 Postback：{data}（來自 {user_id}）")
+
+        if data == "explain_share":
+            reply_text = "📌 請根據「#分享 名稱 標籤（如程式、UI/UX） 相關連結 描述（選填）」格式輸入想分享的資源或工具"
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=reply_text)]
+                )
+            )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
