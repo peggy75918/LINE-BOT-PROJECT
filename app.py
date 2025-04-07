@@ -201,6 +201,12 @@ def handle_message(event):
         
                 project_id = project_res.data[0]["id"]
                 result = handle_share_message(user_message, user_id, project_id)
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=result)]
+                    )
+                )
                 return
         
             except Exception as e:
