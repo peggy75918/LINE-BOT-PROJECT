@@ -1,266 +1,113 @@
 {
     "type": "bubble",
     "body": {
-       "type": "box",
-         "layout": "vertical",
-        "contents": [
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        { "type": "text", "text": "🗃️ 專案總結報表", "weight": "bold", "size": "xl", "margin": "md", "color": "#153448" },
+        { "type": "text", "text": "03/07", "size": "md", "color": "#aaaaaa", "wrap": true, "weight": "bold" },
+        { "type": "separator", "margin": "lg" },
         {
-            "type": "text",
-            "text": "🗃️ 專案總結報表",
-            "weight": "bold",
-            "size": "xl",
-            "margin": "md",
-            "color": "#153448"
-        },
-        {
-            "type": "text",
-            "text": "03/07 - 04/18",
-            "size": "md",
-            "color": "#aaaaaa",
-            "wrap": true,
-            "weight": "bold"
-        },
-        {
-            "type": "separator",
-            "margin": "lg"
-        },
-        {
-            "type": "box",
-            "layout": "vertical",
-            "contents": [
+          "type": "box",
+          "layout": "vertical",
+          "margin": "lg",
+          "spacing": "sm",
+          "contents": [
             {
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": "專案名稱",
-                    "flex": 0,
-                    "size": "md",
-                    "color": "#153448"
-                },
-                {
-                    "type": "text",
-                    "text": "岩壁巨人",
-                    "size": "md",
-                    "color": "#153448",
-                    "align": "end"
-                }
-                ]
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                { "type": "text", "text": "專案名稱", "size": "md", "flex": 0, "color": "#153448" },
+                { "type": "text", "text": "測試專案", "size": "md", "color": "#153448", "align": "end" }
+              ]
             },
             {
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": "總任務數",
-                    "flex": 0,
-                    "size": "md",
-                    "color": "#153448"
-                },
-                {
-                    "type": "text",
-                    "text": "20 項",
-                    "size": "md",
-                    "color": "#153448",
-                    "align": "end"
-                }
-                ]
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                { "type": "text", "text": "總任務數", "size": "md", "flex": 0, "color": "#153448" },
+                { "type": "text", "text": "0 項", "size": "md", "color": "#153448", "align": "end" }
+              ]
             },
             {
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": "總資源數",
-                    "flex": 0,
-                    "size": "md",
-                    "color": "#153448"
-                },
-                {
-                    "type": "text",
-                    "text": "17 項",
-                    "size": "md",
-                    "color": "#153448",
-                    "align": "end"
-                }
-                ]
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                { "type": "text", "text": "總資源數", "size": "md", "flex": 0, "color": "#153448" },
+                { "type": "text", "text": "0 項", "size": "md", "color": "#153448", "align": "end" }
+              ]
             },
             {
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": "專案成員",
-                    "flex": 0,
-                    "size": "md",
-                    "color": "#153448"
-                },
-                {
-                    "type": "text",
-                    "text": "王曉明、李小美、林三折",
-                    "size": "md",
-                    "color": "#153448",
-                    "align": "end",
-                    "margin": "md",
-                    "wrap": true
-                }
-                ]
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                { "type": "text", "text": "專案成員", "size": "md", "flex": 0, "color": "#153448" },
+                { "type": "text", "text": "--", "size": "md", "color": "#153448", "align": "end", "wrap": true }
+              ]
             }
-            ],
-            "spacing": "sm",
-            "margin": "lg"
+          ]
         },
+        { "type": "separator", "margin": "lg" },
         {
-            "type": "separator",
-            "margin": "lg"
-        },
-        {
-            "type": "box",
-            "layout": "vertical",
-            "margin": "lg",
-            "spacing": "sm",
-            "contents": [
+          "type": "box",
+          "layout": "vertical",
+          "margin": "lg",
+          "spacing": "sm",
+          "contents": [
+            { "type": "text", "text": "樣板成員", "color": "#153448", "size": "md" },
             {
-                "type": "text",
-                "text": "王曉明",
-                "color": "#153448",
-                "size": "md"
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                { "type": "text", "text": "專案角色屬性", "size": "sm", "color": "#153448", "flex": 0 },
+                { "type": "text", "text": "#範例", "size": "sm", "color": "#153448", "align": "end", "wrap": true }
+              ]
             },
             {
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": "專案角色屬性",
-                    "size": "sm",
-                    "color": "#153448",
-                    "flex": 0
-                },
-                {
-                    "type": "text",
-                    "text": "#程式設計 #企劃",
-                    "size": "sm",
-                    "color": "#153448",
-                    "align": "end",
-                    "margin": "md",
-                    "wrap": true
-                }
-                ]
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                { "type": "text", "text": "任務完成數與總數", "size": "sm", "color": "#153448", "flex": 0 },
+                { "type": "text", "text": "0 / 0", "size": "sm", "color": "#153448", "align": "end" }
+              ]
             },
             {
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": "任務完成數與總數",
-                    "size": "sm",
-                    "color": "#153448",
-                    "flex": 0
-                },
-                {
-                    "type": "text",
-                    "text": "6 / 7",
-                    "size": "sm",
-                    "color": "#153448",
-                    "align": "end"
-                }
-                ]
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                { "type": "text", "text": "分享專案資源數", "size": "sm", "color": "#153448", "flex": 0 },
+                { "type": "text", "text": "0 項", "size": "sm", "color": "#153448", "align": "end" }
+              ]
             },
             {
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": "分享專案資源數",
-                    "size": "sm",
-                    "color": "#153448",
-                    "flex": 0
-                },
-                {
-                    "type": "text",
-                    "text": "5 項",
-                    "size": "sm",
-                    "color": "#153448",
-                    "align": "end"
-                }
-                ]
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                { "type": "text", "text": "建議與反思留言數", "size": "sm", "color": "#153448", "flex": 0 },
+                { "type": "text", "text": "0 次", "size": "sm", "color": "#153448", "align": "end" }
+              ]
             },
             {
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": "建議與反思留言數",
-                    "size": "sm",
-                    "color": "#153448",
-                    "flex": 0
-                },
-                {
-                    "type": "text",
-                    "text": "13 次",
-                    "size": "sm",
-                    "color": "#153448",
-                    "align": "end"
-                }
-                ]
-            },
-            {
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": "任務平均評分",
-                    "size": "sm",
-                    "color": "#153448"
-                },
-                {
-                    "type": "text",
-                    "size": "sm",
-                    "color": "#153448",
-                    "align": "end",
-                    "text": "⭐ 4.6"
-                }
-                ]
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                { "type": "text", "text": "任務平均評分", "size": "sm", "color": "#153448" },
+                { "type": "text", "text": "⭐ --", "size": "sm", "color": "#153448", "align": "end" }
+              ]
             }
-            ]
+          ]
         },
+        { "type": "separator", "margin": "lg" },
         {
-            "type": "separator",
-            "margin": "lg"
-        },
-        {
-            "type": "box",
-            "layout": "horizontal",
-            "margin": "md",
-            "contents": [
-            {
-                "type": "text",
-                "text": "感謝大家對此專案的努力與貢獻！",
-                "size": "md",
-                "color": "#153448",
-                "flex": 0,
-                "offsetStart": "none"
-            }
-            ],
-            "offsetEnd": "none",
-            "offsetTop": "none",
-            "offsetBottom": "none",
-            "offsetStart": "none"
+          "type": "box",
+          "layout": "horizontal",
+          "margin": "md",
+          "contents": [
+            { "type": "text", "text": "感謝大家對此專案的努力與貢獻！", "size": "md", "color": "#153448", "flex": 0 }
+          ]
         }
-        ]
+      ]
     },
-    "styles": {
-        "footer": {
-        "separator": true
-        }
-    }
-}
+    "styles": { "footer": { "separator": true } }
+  }
+  
