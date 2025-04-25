@@ -1,6 +1,7 @@
+
 import os
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from supabase import create_client
 from dotenv import load_dotenv
 
@@ -66,10 +67,11 @@ def generate_project_summary(project_id):
                 uid = task_map[tid]
                 members[uid]["task_completed"] += 1
 
-        # 評分
-        rating_res = supabase.table("task_feedbacks").select("user_id, rating").in_("task_id", list(task_map)).eq("is_reflection", False).execute()
+        # 評分（根據 task_id 找出 assignee）
+        rating_res = supabase.table("task_feedbacks").select("task_id, rating").in_("task_id", list(task_map)).eq("is_reflection", False).execute()
         for f in rating_res.data:
-            uid = f["user_id"]
+            task_id = f["task_id"]
+            uid = task_map.get(task_id)
             if uid in members and f.get("rating") is not None:
                 members[uid]["rating_sum"] += f["rating"]
                 members[uid]["rating_count"] += 1
@@ -102,11 +104,11 @@ def generate_project_summary(project_id):
         details[2]["contents"][1]["text"] = f"{sum(m['resource_count'] for m in members.values())} 項"
         details[3]["contents"][1]["text"] = "、".join(m["name"] for m in members.values())
 
-        # 移除「項目後 separator」
+        # 移除樣板後續所有 block（保留前 5 個：標題、日期、分隔線、專案摘要區塊、下分隔線）
         template["body"]["contents"] = template["body"]["contents"][:5]
 
         # ⬇️ 成員統計
-        for m in members.values():
+        for i, m in enumerate(members.values()):
             rating = f"⭐ {round(m['rating_sum']/m['rating_count'], 1)}" if m["rating_count"] > 0 else "—"
             block = [
                 { "type": "text", "text": m["name"], "color": "#153448", "size": "md" },
@@ -141,12 +143,12 @@ def generate_project_summary(project_id):
                     ]
                 }
             ]
-            template["body"]["contents"] += [
-                { "type": "separator", "margin": "lg" },
-                { "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm", "contents": block }
-            ]
+            # 第一位成員不加 separator
+            if i > 0:
+                template["body"]["contents"].append({ "type": "separator", "margin": "lg" })
+            template["body"]["contents"].append({ "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm", "contents": block })
 
-        # 最後一個感謝區塊
+        # 最後感謝區塊
         template["body"]["contents"] += [
             { "type": "separator", "margin": "lg" },
             {
