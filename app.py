@@ -395,6 +395,40 @@ def handle_postback(event):
                 )
             )
 
+@app.route("/send_project_summary", methods=["POST"])
+def send_project_summary():
+    from project_summary_report import generate_project_summary
+    from linebot.v3.messaging import PushMessageRequest, FlexMessage, FlexContainer
+
+    try:
+        data = request.get_json()
+        project_id = data.get("project_id")
+        group_id = data.get("group_id")
+
+        if not project_id or not group_id:
+            return { "success": False, "message": "缺少 project_id 或 group_id" }, 400
+
+        result = generate_project_summary(project_id)
+        if isinstance(result, str):
+            return { "success": False, "message": result }, 500
+
+        flex_msg = FlexMessage(
+            alt_text="🗃️ 專案總結報表",
+            contents=FlexContainer.from_json(json.dumps(result))
+        )
+
+        with ApiClient(configuration) as api_client:
+            MessagingApi(api_client).push_message(
+                PushMessageRequest(to=group_id, messages=[flex_msg])
+            )
+
+        return { "success": True }
+
+    except Exception as e:
+        print("❌ 報表推送失敗:", e)
+        return { "success": False, "message": str(e) }, 500
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
