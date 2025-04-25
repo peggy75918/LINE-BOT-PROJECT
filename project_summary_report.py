@@ -1,29 +1,34 @@
-import os
-import json
 from datetime import datetime, timezone
-from supabase import create_client
+import json
+import os
 from dotenv import load_dotenv
+from supabase import create_client
 
-# 讀取環境變數
+# 載入 .env 環境變數
 load_dotenv()
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-supabase_client = create_client(supabase_url, supabase_key)
+supabase = create_client(supabase_url, supabase_key)
+
+def safe_text(value, default="--"):
+    return str(value) if value is not None else default
 
 def generate_project_summary(project_id):
     try:
-        # 1️⃣ 查詢專案基本資料
-        project_res = supabase_client.table("projects").select("name, completed_at").eq("id", project_id).maybe_single().execute()
+        # ✅ 專案基本資料
+        project_res = supabase.table("projects").select("name, completed_at").eq("id", project_id).maybe_single().execute()
         project = project_res.data
         if not project:
             return "⚠️ 找不到該專案"
 
-        name = project["name"]
-        completed_at = project.get("completed_at")
-        completed_date = datetime.fromisoformat(completed_at) if completed_at else datetime.now(timezone.utc)
+        project_name = project["name"]
+        completed_date = (
+            datetime.fromisoformat(project["completed_at"]) if project.get("completed_at")
+            else datetime.now()
+        ).astimezone(timezone.utc)
 
-        # 2️⃣ 查詢所有專案成員
-        member_res = supabase_client.table("project_members").select("user_id, real_name, attribute_tags").eq("project_id", project_id).execute()
+        # ✅ 專案成員
+        members_res = supabase.table("project_members").select("user_id, real_name, attribute_tags").eq("project_id", project_id).execute()
         members = {
             m["user_id"]: {
                 "name": m["real_name"],
@@ -33,121 +38,143 @@ def generate_project_summary(project_id):
                 "rating_sum": 0,
                 "rating_count": 0,
                 "task_total": 0,
-                "task_completed": 0
-            } for m in member_res.data
+                "task_completed": 0,
+            }
+            for m in members_res.data
         }
 
-        # 3️⃣ 查詢任務分配情況
-        task_res = supabase_client.table("tasks").select("id, assignee_id").eq("project_id", project_id).execute()
+        # ✅ 任務
+        task_res = supabase.table("tasks").select("id, assignee_id").eq("project_id", project_id).execute()
         task_map = {}
-        for t in task_res.data:
-            uid = t["assignee_id"]
+        for task in task_res.data:
+            uid = task["assignee_id"]
             if uid in members:
                 members[uid]["task_total"] += 1
-                task_map[t["id"]] = uid
+                task_map[task["id"]] = uid
 
-        task_ids = list(task_map.keys())
+        # ✅ checklist 完成數
+        checklist_res = supabase.table("task_checklists").select("task_id, is_done").in_("task_id", list(task_map.keys())).execute()
+        task_checklist_map = {}
+        for item in checklist_res.data:
+            task_checklist_map.setdefault(item["task_id"], []).append(item["is_done"])
 
-        # 4️⃣ 查詢 checklist 狀態
-        checklist_res = supabase_client.table("task_checklists").select("task_id, is_done").in_("task_id", task_ids).execute()
-        checklist_map = {}
-        for c in checklist_res.data:
-            checklist_map.setdefault(c["task_id"], []).append(c["is_done"])
-        for task_id, checks in checklist_map.items():
+        for task_id, checks in task_checklist_map.items():
             if all(checks):
                 uid = task_map[task_id]
                 members[uid]["task_completed"] += 1
 
-        # 5️⃣ 查詢 task_feedbacks
-        feedback_res = supabase_client.table("task_feedbacks").select("user_id, rating").in_("task_id", task_ids).eq("is_reflection", False).execute()
-        for f in feedback_res.data:
+        # ✅ 評分
+        feedbacks = supabase.table("task_feedbacks").select("user_id, rating").in_("task_id", list(task_map.keys())).eq("is_reflection", False).execute()
+        for f in feedbacks.data:
             uid = f["user_id"]
-            rating = f.get("rating")
-            if uid in members and rating is not None:
-                members[uid]["rating_sum"] += rating
+            if uid in members and f.get("rating") is not None:
+                members[uid]["rating_sum"] += f["rating"]
                 members[uid]["rating_count"] += 1
 
-        # 6️⃣ 查詢 shared_resources
-        resource_res = supabase_client.table("shared_resources").select("user_id").eq("project_id", project_id).execute()
-        for r in resource_res.data:
+        # ✅ 分享的資源
+        resources = supabase.table("shared_resources").select("user_id").eq("project_id", project_id).execute()
+        for r in resources.data:
             uid = r["user_id"]
             if uid in members:
                 members[uid]["resource_count"] += 1
 
-        # 7️⃣ 查詢 resource_replies
-        reply_res = supabase_client.table("resource_replies").select("user_id").execute()
-        for r in reply_res.data:
+        # ✅ 留言建議
+        replies = supabase.table("resource_replies").select("user_id").execute()
+        for r in replies.data:
             uid = r["user_id"]
             if uid in members:
                 members[uid]["comment_count"] += 1
 
-        # 8️⃣ 載入樣板 JSON
+        # ✅ 套用樣板
         with open("project_summary_template.json", "r", encoding="utf-8") as f:
             template = json.load(f)
 
-        # 更新總結日期
-        template["body"]["contents"][1]["text"] = completed_date.strftime("%m/%d")
+        template["body"]["contents"][1]["text"] = completed_date.strftime("%m/%d")  # 日期
+        detail_blocks = template["body"]["contents"][3]["contents"]
+        detail_blocks[0]["contents"][1]["text"] = project_name
+        detail_blocks[1]["contents"][1]["text"] = f"{sum(m['task_total'] for m in members.values())} 項"
+        detail_blocks[2]["contents"][1]["text"] = f"{sum(m['resource_count'] for m in members.values())} 項"
+        detail_blocks[3]["contents"][1]["text"] = "、".join(m["name"] for m in members.values())
 
-        # 更新總覽資料
-        overview = template["body"]["contents"][3]["contents"]
-        overview[0]["contents"][1]["text"] = name
-        overview[1]["contents"][1]["text"] = f"{sum(m['task_total'] for m in members.values())} 項"
-        overview[2]["contents"][1]["text"] = f"{sum(m['resource_count'] for m in members.values())} 項"
-        overview[3]["contents"][1]["text"] = "、".join(m["name"] for m in members.values())
+        # ✅ 移除原有的成員區塊與尾端
+        preserved = template["body"]["contents"][:5]
+        preserved.append({"type": "separator", "margin": "lg"})
+        template["body"]["contents"] = preserved
 
-        # 清除樣板後續內容，只保留前 7 項
-        template["body"]["contents"] = template["body"]["contents"][:7]
-
-        # 逐一加入成員統計區塊
         for m in members.values():
             avg_rating = f"⭐ {round(m['rating_sum'] / m['rating_count'], 1)}" if m["rating_count"] > 0 else "--"
-            member_block = [
-                {
-                    "type": "box",
-                    "layout": "vertical",
-                    "margin": "lg",
-                    "spacing": "sm",
-                    "contents": [
-                        {"type": "text", "text": m["name"], "color": "#153448", "size": "md"},
-                        {
-                            "type": "box", "layout": "horizontal", "contents": [
-                                {"type": "text", "text": "專案角色屬性", "size": "sm", "color": "#153448", "flex": 0},
-                                {"type": "text", "text": m["attributes"], "size": "sm", "color": "#153448", "align": "end", "margin": "md", "wrap": True}
-                            ]
-                        },
-                        {
-                            "type": "box", "layout": "horizontal", "contents": [
-                                {"type": "text", "text": "任務完成數與總數", "size": "sm", "color": "#153448", "flex": 0},
-                                {"type": "text", "text": f"{m['task_completed']} / {m['task_total']}", "size": "sm", "color": "#153448", "align": "end"}
-                            ]
-                        },
-                        {
-                            "type": "box", "layout": "horizontal", "contents": [
-                                {"type": "text", "text": "分享專案資源數", "size": "sm", "color": "#153448", "flex": 0},
-                                {"type": "text", "text": f"{m['resource_count']} 項", "size": "sm", "color": "#153448", "align": "end"}
-                            ]
-                        },
-                        {
-                            "type": "box", "layout": "horizontal", "contents": [
-                                {"type": "text", "text": "建議與反思留言數", "size": "sm", "color": "#153448", "flex": 0},
-                                {"type": "text", "text": f"{m['comment_count']} 次", "size": "sm", "color": "#153448", "align": "end"}
-                            ]
-                        },
-                        {
-                            "type": "box", "layout": "horizontal", "contents": [
-                                {"type": "text", "text": "任務平均評分", "size": "sm", "color": "#153448"},
-                                {"type": "text", "text": avg_rating, "size": "sm", "color": "#153448", "align": "end"}
-                            ]
-                        }
-                    ]
-                },
-                {"type": "separator", "margin": "lg"}
-            ]
-            template["body"]["contents"].extend(member_block)
+
+            block = {
+                "type": "box",
+                "layout": "vertical",
+                "margin": "lg",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": safe_text(m["name"]), "color": "#153448", "size": "md"},
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {"type": "text", "text": "專案角色屬性", "size": "sm", "color": "#153448", "flex": 0},
+                            {"type": "text", "text": safe_text(m["attributes"]), "size": "sm", "color": "#153448", "align": "end", "wrap": True}
+                        ]
+                    },
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {"type": "text", "text": "任務完成數與總數", "size": "sm", "color": "#153448", "flex": 0},
+                            {"type": "text", "text": f"{m['task_completed']} / {m['task_total']}", "size": "sm", "color": "#153448", "align": "end"}
+                        ]
+                    },
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {"type": "text", "text": "分享專案資源數", "size": "sm", "color": "#153448", "flex": 0},
+                            {"type": "text", "text": f"{m['resource_count']} 項", "size": "sm", "color": "#153448", "align": "end"}
+                        ]
+                    },
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {"type": "text", "text": "建議與反思留言數", "size": "sm", "color": "#153448", "flex": 0},
+                            {"type": "text", "text": f"{m['comment_count']} 次", "size": "sm", "color": "#153448", "align": "end"}
+                        ]
+                    },
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {"type": "text", "text": "任務平均評分", "size": "sm", "color": "#153448"},
+                            {"type": "text", "text": avg_rating, "size": "sm", "color": "#153448", "align": "end"}
+                        ]
+                    }
+                ]
+            }
+
+            template["body"]["contents"].append(block)
+            template["body"]["contents"].append({"type": "separator", "margin": "lg"})
+
+        # ✅ 感謝文字
+        template["body"]["contents"].append({
+            "type": "box",
+            "layout": "horizontal",
+            "margin": "md",
+            "contents": [{
+                "type": "text",
+                "text": "感謝大家對此專案的努力與貢獻！",
+                "size": "md",
+                "color": "#153448",
+                "flex": 0
+            }]
+        })
 
         return template
 
     except Exception as e:
         return f"❌ 生成報表失敗: {str(e)}"
+
 
 
