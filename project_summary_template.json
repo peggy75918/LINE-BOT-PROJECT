@@ -47,7 +47,6 @@
             }
           ]
         },
-        { "type": "separator", "margin": "lg" },
         {
           "type": "box",
           "layout": "vertical",
