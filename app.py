@@ -14,12 +14,14 @@ import supabase
 import json
 from dotenv import load_dotenv
 from datetime import datetime
+from flask_cors import CORS
 
 # 讀取 .env 環境變數
 load_dotenv()
 
 # 初始化 Flask
 app = Flask(__name__)
+CORS(app)  # ✅ 啟用 CORS 支援
 
 # 設定 LINE API
 configuration = Configuration(access_token=os.getenv('CHANNEL_ACCESS_TOKEN'))
