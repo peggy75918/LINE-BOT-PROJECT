@@ -187,9 +187,25 @@ def handle_message(event):
 
         if user_message == "生成專案報表":
             from project_summary_report import generate_project_summary
+
+            # 先查 group 對應的 project_id（跟 weekly_report 做法一樣）
+            project_res = supabase_client.table("projects").select("id") \
+                .eq("group_id", group_id).order("created_at", desc=True).limit(1).execute()
+
+            if not project_res.data:
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text="⚠️ 找不到群組中的專案，請先建立一個專案")]
+                    )
+                )
+                return
+
+            project_id = project_res.data[0]["id"]
             result = generate_project_summary(project_id)
+
+            # 回覆 Flex 報表
             if isinstance(result, str):
-                # 錯誤訊息
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
@@ -197,7 +213,6 @@ def handle_message(event):
                     )
                 )
             else:
-                # 成功，送出 FlexMessage
                 flex_msg = FlexMessage(
                     alt_text="🗃️ 專案總結報表",
                     contents=FlexContainer.from_json(json.dumps(result))
@@ -208,6 +223,7 @@ def handle_message(event):
                         messages=[flex_msg]
                     )
                 )
+                return
 
         # 分享資源
         if user_message.startswith("#分享"):
