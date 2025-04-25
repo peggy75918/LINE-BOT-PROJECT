@@ -185,6 +185,30 @@ def handle_message(event):
                 )
             return
 
+        if user_message == "生成專案報表":
+            from project_summary_report import generate_project_summary
+            result = generate_project_summary(project_id)
+            if isinstance(result, str):
+                # 錯誤訊息
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=result)]
+                    )
+                )
+            else:
+                # 成功，送出 FlexMessage
+                flex_msg = FlexMessage(
+                    alt_text="🗃️ 專案總結報表",
+                    contents=FlexContainer.from_json(json.dumps(result))
+                )
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[flex_msg]
+                    )
+                )
+
         # 分享資源
         if user_message.startswith("#分享"):
             try:
